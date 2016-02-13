@@ -1,10 +1,3 @@
-var server_port = process.env.OPENSHIFT_NODEJS_PORT || 8080;
-var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1';
- 
-server.listen(server_port, server_ip_address, function () {
-  console.log( "Listening on " + server_ip_address + ", server_port " + server_port )
-});
-
 var Discord = require('discord.js'),
 	MusicStream = require('youtube-dl');
 
@@ -58,16 +51,16 @@ var commands = [
 					callFunction: function(id) { skipToTrack(id-1); }
 				},
 				{
+					name: 'queue stop',
+					desc: 'Stop currently playing music',
+					usage: '',
+					callFunction: function() { stopMusic(); }
+				},
+				{
 					name: 'quit',
 					desc: 'Stop the bot entirely',
 					usage: '',
 					callFunction: function() { quit(); }
-				},
-				{
-					name: 'stop',
-					desc: 'Stop currently playing music',
-					usage: '',
-					callFunction: function() { stopMusic(); }
 				}
 			   ];
 	
@@ -121,6 +114,8 @@ bot.on('message', function(msg) {
 				commands[commands.indexOf(command)].callFunction(msg.content.substring(command.name.length + 2, msg.content.length));
 			}
 		}
+		
+		sendMsg('**[ERROR]** Hmm... That command doesn\'t exist unfortunately!')
 	}
 });
 
