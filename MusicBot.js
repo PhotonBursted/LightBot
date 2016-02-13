@@ -75,13 +75,13 @@ var bot = new Discord.Client(),
 // Settings for the channels the bot should act in.
 // Change the name properties to the names of the channels the bot should interact with!
 var voiceChannel = {
-		name: 'PCC Radio',
+		name: 'MusicBot',
 		id: function() {
 			return bot.channels.get('name', this.name);
 		}
 	},
 	textChannels = {
-		name: ['bot-testgrounds'],
+		name: ['moosiccontrols'],
 		id: function() {
 				channelsStr = '';
 				
@@ -177,9 +177,15 @@ function addTrack(url) {
 }
 
 function calcSecs(time) {
-	// Calculate the amount of seconds of playing time, given the input is [mins]:[secs]
-	var timeArr = time.split(':');
-	return parseInt(time[0])*60 + parseInt(time[2]);
+	// Calculate the amount of seconds of playing time, given the input is separated by :
+	var timeArr = time.split(':'),
+		secs = 0;
+		
+	for(i=0; i<timeArr.length; i++) {
+		secs += parseInt(timeArr[i]) * Math.pow(60, (timeArr.length - 1 - i));
+	}
+	
+	return secs;
 }
 
 function deleteLastMsg(msg) {
