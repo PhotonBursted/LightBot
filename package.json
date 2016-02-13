@@ -1,6 +1,17 @@
 {
+  "name": "LightBot",
+  "version": "0.1.0",
+  "description": "A way to interface with the Discord API",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PhotonBursted/LightBot.git"
+  },
   "scripts": {
     "start": "node MusicBot.js"
+  },
+  "dependencies": {
+    "discord.js": "^6.0.0",
+    "youtube-dl": "^1.10.5"
   },
   "main": "MusicBot.js"
 }
