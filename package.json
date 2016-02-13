@@ -1,6 +1,13 @@
 {
+  "name": "LightBot",
+  "desc": "A bot for Discord",
+  "version": "0.1.0",
   "scripts": {
     "start": "node MusicBot.js"
   },
-  "main": "MusicBot.js"
+  "main": "MusicBot.js",
+  "dependencies": {
+    "discord.js": "^6.0.0",
+    "youtube-dl": "^1.10.5"
+  }
 }
