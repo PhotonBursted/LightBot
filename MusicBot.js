@@ -8,61 +8,95 @@ var commands = [
 					name: 'help',
 					desc: 'Showing all available commands with usage',
 					usage: '{optional: command (e.g. !help q gives all commands starting with q)}',
-					callFunction: function(cmd) { help(cmd); }
+					callFunction: function(msg, cmd) {
+						help(cmd);
+					}
 				},
 				{
 					name: 'queue add',
 					desc: 'Add a song to queuehuehuehue',
 					usage: '{url}',
-					callFunction: function(url) { addTrack(url); }
+					callFunction: function(msg, url) {
+						addTrack(msg, url); 
+					}
 				},
 				{
 					name: 'queue next',
 					desc: 'Skip to the next track in the queue',
 					usage: '',
-					callFunction: function() { toNextTrack(); }
+					callFunction: function(msg) {
+						if(checkPerms(msg, currentTrack)) {
+							skipToTrack(currentTrack);
+						}
+					}
 				},
 				{
 					name: 'queue play',
 					desc: 'Plays the queue',
 					usage: '',
-					callFunction: function() { playQueue(); }
+					callFunction: function(msg) {
+						if(!bot.voiceConnection.playing) {
+							playQueue();
+						} else {
+							sendMsg('**[Queue]** Already playing!');
+						}
+					}
 				},
 				{
 					name: 'queue prev',
 					desc: 'Goes to the previous track in the queue',
 					usage: '',
-					callFunction: function() { toPrevTrack(); }
+					callFunction: function(msg) {
+						if(checkPerms(msg, currentTrack)) {
+							skipToTrack(currentTrack - 2);
+						}
+					}
 				},
 				{
 					name: 'queue remove',
 					desc: 'Removes a track from queue',
 					usage: '{track position in queue}',
-					callFunction: function(id) { removeTrack(id); }
+					callFunction: function(msg, id) {
+						if(checkPerms(msg, id-1)) {
+							removeTrack(id);
+						}
+					}
 				},
 				{
 					name: 'queue show',
 					desc: 'Display the contents of the queue',
 					usage: '',
-					callFunction: function() { showQueueContents(); }
+					callFunction: function() {
+						showQueueContents();
+					}
 				},
 				{
 					name: 'queue skipto',
 					desc: 'Skip to a certain song',
 					usage: '{track position in queue}',
-					callFunction: function(id) { skipToTrack(id-1); }
+					callFunction: function(msg, id) {
+						if(checkPerms(msg, currentTrack)) {
+							skipToTrack(id-1);
+						}
+					}
 				},
 				{
 					name: 'queue stop',
 					desc: 'Stop currently playing music',
 					usage: '',
-					callFunction: function() { stopMusic(); }
+					callFunction: function(msg) {
+						if(checkPerms(msg, currentTrack)) {
+							stopMusic();
+						}
+					}
 				},
 				{
 					name: 'quit',
 					desc: 'Stop the bot entirely',
 					usage: '',
-					callFunction: function() { quit(); }
+					callFunction: function(msg) {
+						quit();
+					}
 				}
 			   ];
 
@@ -126,7 +160,7 @@ bot.on('message', function(msg) {
 		// Loop through the commands array to see if the command is valid, then execute its respective function
 		for(command of commands) {
 			if(msg.content.toLowerCase().indexOf('!'+ command.name) === 0) {
-				commands[commands.indexOf(command)].callFunction(msg.content.substring(command.name.length + 2, msg.content.length));
+				commands[commands.indexOf(command)].callFunction(msg, msg.content.substring(command.name.length + 2, msg.content.length));
 				commandExecuted = true;
 			}
 		}
@@ -138,7 +172,7 @@ bot.on('message', function(msg) {
 	}
 });
 
-function addTrack(url) {
+function addTrack(msg, url) {
 	// Get info about the url which was issued
 	MusicStream.getInfo(url, [], function(err, info) {
 		if(err) {
@@ -163,14 +197,15 @@ function addTrack(url) {
 			queue.push({
 				name: trackName,
 				url: url,
-				duration: calcSecs(info.duration)
+				duration: calcSecs(info.duration),
+				requester: msg.author.username
 			});
 			
 			if(queue[queue.length - 1].duration == null) {
 				sendMsg('**[Queue] [ERROR]** Track __'+ trackName +'__ not added to queue as duration wasn\'t retrievable. Sorreh!');
 				console.log('[Queue] [ERROR] Track '+ trackName +' wasn\'t added because duration wasn\'t retrievable');
 			}
-			sendMsg('**[Queue]** Added to the queue:\n   - Name: *'+ queue[queue.length - 1].name +'*\n   - Length: *'+ (queue[queue.length - 1].duration) +'s*\n   - Position: *#'+ queue.length +'*');
+			sendMsg('**[Queue]** Added to the queue:\n   - Name: *'+ queue[queue.length - 1].name +'*\n   - Length: *'+ formatTime(queue[queue.length - 1].duration) +'*\n   - Position: *#'+ queue.length +'*\n   - Requester: *'+ queue[queue.length - 1].requester +'*');
 			console.log('[QUEUE] Added '+ JSON.stringify(queue[queue.length - 1]));
 		}
 	});
@@ -188,6 +223,21 @@ function calcSecs(time) {
 	return secs;
 }
 
+function checkPerms(msg, track) {
+	if(queue[track] != null) {
+		var isAllowed = queue[track].requester == msg.author.username;
+		
+		if(!isAllowed) {
+			sendMsg('**[ERROR]** AY. YOU. Ya can\'t, aight? Aight.');
+		}
+		
+		return isAllowed;
+	} else {
+		sendMsg('**[ERROR]** Huh. Something went wrong while checking whether you could do that. Better luck next time');
+		return false;
+	}
+}
+
 function deleteLastMsg(msg) {
 	// Delete the last message received
 	bot.deleteMessage(msg, {wait : 0}, function(error) {
@@ -195,6 +245,14 @@ function deleteLastMsg(msg) {
 			console.log('[ERROR] [WARNING] Failed to delete message "'+ msg.content +'", because of the following error:\n'+ error);
 		}
 	});
+}
+
+function formatTime(time) {
+	var hours = Math.floor(time/3600),
+		mins = Math.floor(time/60 - Math.floor(time/3600) * 60),
+		secs = Math.floor(time - Math.floor(time/60) * 60);
+	
+	return hours +':'+ (mins < 10 ? '0'+ mins : mins) +':'+ (secs < 10 ? '0'+ secs : secs);
 }
 
 function help(cmd) {
@@ -291,7 +349,7 @@ function showQueueContents() {
 	
 	if(queue.length > 0) {
 		for(i=0; i<queue.length; i++) {
-			output += '\n  - #'+ (i + 1) +': *'+ queue[i].name +'*'; 
+			output += '\n  - #'+ (i + 1) +': *'+ queue[i].name +'* ('+ formatTime(queue[i].duration) +')'; 
 		}
 	} else {
 		output += '\nQueue is empty at the moment... Add new ones by typing !queue add [url]!';
@@ -317,13 +375,6 @@ function stopMusic() {
 
 function toNextTrack() {
 	clearTimeout(trackTimer);
-	
-	bot.voiceConnection.stopPlaying();
-	playQueue();
-}
-
-function toPrevTrack() {
-	skipToTrack(currentTrack - 2);
 	
 	bot.voiceConnection.stopPlaying();
 	playQueue();
