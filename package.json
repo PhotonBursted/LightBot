@@ -1,7 +1,7 @@
 {
   "name": "LightBot",
   "desc": "A bot for Discord",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "scripts": {
     "start": "node MusicBot.js"
   },

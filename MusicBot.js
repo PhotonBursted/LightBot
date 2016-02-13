@@ -1,11 +1,11 @@
 var Discord = require('discord.js'),
 	MusicStream = require('youtube-dl');
-
+	
 var commands = [
 				{
 					name: 'help',
 					desc: 'Showing all available commands with usage',
-					usage: '{optional: command (!help q gives all commands starting with q)}',
+					usage: '{optional: command (e.g. !help q gives all commands starting with q)}',
 					callFunction: function(cmd) { help(cmd); }
 				},
 				{
@@ -65,8 +65,11 @@ var commands = [
 			   ];
 	
 var bot = new Discord.Client(),
-	botName = 'LightBot',
-	voiceChannel = {
+	botName = '',
+	botEmail = '',
+	botPassword = '',
+
+var voiceChannel = {
 		name: 'PCC Radio',
 		id: function() {
 			return bot.channels.get('name', this.name);
@@ -92,8 +95,8 @@ var queue = [],
 	trackTimer;
 
 bot.on('ready', function() {
-	
 	bot.joinVoiceChannel(voiceChannel.id());
+	
 	console.log('[JOIN] Voice channel joined');
 	sendMsg("**[JOIN]** "+ ['Ayyyy look who\'s there!',
 							'\\*crashes through wall\\* SOMEONE CALLED?',
@@ -108,14 +111,18 @@ bot.on('message', function(msg) {
 		if(msg.author.name != botName && msg.content.indexOf('!') === 0) {
 			deleteLastMsg(msg);
 		}
+		var commandExecuted = false;
 		
 		for(command of commands) {
 			if(msg.content.toLowerCase().indexOf('!'+ command.name) === 0) {
 				commands[commands.indexOf(command)].callFunction(msg.content.substring(command.name.length + 2, msg.content.length));
+				commandExecuted = true;
 			}
 		}
 		
-		sendMsg('**[ERROR]** Hmm... That command doesn\'t exist unfortunately!')
+		if(msg.content.indexOf('!') === 0 && !commandExecuted) {
+			sendMsg('**[ERROR]** Hmm... That command doesn\'t exist unfortunately!')
+		}
 	}
 });
 
@@ -141,10 +148,14 @@ function addTrack(url) {
 			queue.push({
 				name: trackName,
 				url: url,
-				duration: calcSecs(info.duration) * 1000
+				duration: calcSecs(info.duration)
 			});
 			
-			sendMsg('**[Queue]** Added to the queue:\n   - Name: *'+ queue[queue.length - 1].name +'*\n   - Length: *'+ (queue[queue.length - 1].duration / 1000) +'s*\n   - Position: *#'+ queue.length +'*');
+			if(queue[queue.length - 1].duration == null) {
+				sendMsg('**[Queue] [ERROR]** Track __'+ trackName +'__ not added to queue as duration wasn\'t retrievable. Sorreh!');
+				console.log('[Queue] [ERROR] Track '+ trackName +' wasn\'t added because duration wasn\'t retrievable');
+			}
+			sendMsg('**[Queue]** Added to the queue:\n   - Name: *'+ queue[queue.length - 1].name +'*\n   - Length: *'+ (queue[queue.length - 1].duration) +'s*\n   - Position: *#'+ queue.length +'*');
 			console.log('[QUEUE] Added '+ JSON.stringify(queue[queue.length - 1]));
 		}
 	});
@@ -191,7 +202,7 @@ function playQueue() {
 		
 		trackTimer = setTimeout(function() {
 			toNextTrack()
-		}, queue[currentTrack].duration);
+		}, queue[currentTrack].duration * 1000);
 	} else {
 		sendMsg('**[Queue]** Hmm... The queue seems empty. Consider adding some music!');
 	}
@@ -228,7 +239,7 @@ function quit() {
 
 function removeTrack(id) {
 	if(queue[id-1] == null) {
-		sendMsg("**[Queue] [ERROR]** That track didn't exist");
+		sendMsg("**[Queue] [ERROR]** That track doesn't exist");
 	} else {
 		sendMsg('**[Queue]** Removed track '+ id +' ('+ queue[id-1].name +')');
 		console.log('[QUEUE] Removed '+ queue[id-1].name);
@@ -284,4 +295,9 @@ function toPrevTrack() {
 }
 
 // Login with LightBot credentials
-bot.login('zghepczi@zetmail.com', 'qmPj6V3uVe8HZvnLk7gCtxsD');
+if(botEmail == null || botPassword == null) {
+	console.log('[ERROR] Please enter the credentials for the bot account in the script first.\nThis script will now terminate');
+	process.exit(0);
+} else {
+	bot.login(botEmail, botPassword);
+}
