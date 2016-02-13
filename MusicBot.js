@@ -1,6 +1,8 @@
+// Acquire the modules needed to run the script
 var Discord = require('discord.js'),
 	MusicStream = require('youtube-dl');
-	
+
+// A list of all commands used in the bot. Nice and neat, ain't it?
 var commands = [
 				{
 					name: 'help',
@@ -63,12 +65,15 @@ var commands = [
 					callFunction: function() { quit(); }
 				}
 			   ];
-	
+
+// All bot related variables are initialized here
 var bot = new Discord.Client(),
 	botName = '',
 	botEmail = '',
 	botPassword = '';
 
+// Settings for the channels the bot should act in.
+// Change the name properties to the names of the channels the bot should interact with!
 var voiceChannel = {
 		name: 'PCC Radio',
 		id: function() {
@@ -78,22 +83,24 @@ var voiceChannel = {
 	textChannels = {
 		name: ['bot-testgrounds'],
 		id: function() {
-			channelsStr = '';
-			
-			for(channelName of textChannels.name) {
-				channelsStr += bot.channels.get('name', channelName);
+				channelsStr = '';
+				
+				for(channelName of textChannels.name) {
+					channelsStr += bot.channels.get('name', channelName);
+				}
+				
+				return channelsStr;
 			}
-			
-			return channelsStr;
-		}
 	};
 
-console.log('[START] Reddy... Steddy...');
-
+// Variables for the music queue
 var queue = [],
 	currentTrack,
 	trackTimer;
 
+console.log('[START] Reddy... Steddy...');
+
+// When the bot has logged in, this will fire
 bot.on('ready', function() {
 	bot.joinVoiceChannel(voiceChannel.id());
 	
@@ -106,13 +113,17 @@ bot.on('ready', function() {
 	][Math.floor(Math.random() * 5)]);
 });
 
+// Whenever a new message comes in, this fires
 bot.on('message', function(msg) {
+	// If the message is posted in a channel listed in the textChannels object...
 	if(textChannels.id().indexOf(msg.channel.toString()) != -1) {
+		// Should it be a command, delete it
 		if(msg.author.name != botName && msg.content.indexOf('!') === 0) {
 			deleteLastMsg(msg);
 		}
-		var commandExecuted = false;
 		
+		var commandExecuted = false;
+		// Loop through the commands array to see if the command is valid, then execute its respective function
 		for(command of commands) {
 			if(msg.content.toLowerCase().indexOf('!'+ command.name) === 0) {
 				commands[commands.indexOf(command)].callFunction(msg.content.substring(command.name.length + 2, msg.content.length));
@@ -120,6 +131,7 @@ bot.on('message', function(msg) {
 			}
 		}
 		
+		// If no suitable function is found, give feedback
 		if(msg.content.indexOf('!') === 0 && !commandExecuted) {
 			sendMsg('**[ERROR]** Hmm... That command doesn\'t exist unfortunately!')
 		}
@@ -127,6 +139,7 @@ bot.on('message', function(msg) {
 });
 
 function addTrack(url) {
+	// Get info about the url which was issued
 	MusicStream.getInfo(url, [], function(err, info) {
 		if(err) {
 			sendMsg('**[Queue] [ERROR]** Uh-oh! The URL you specified is not suitable....\nCheck spelling mistakes or whether you actually entered the URL');
@@ -138,11 +151,13 @@ function addTrack(url) {
 				console.log('length:', calcSecs(info.duration));
 				
 				trackName = info.uploader +' - '+ info.title;
-			} else {
+			} else if(url.indexOf('youtube.com') > 0) {
 				console.log('song: '+ info.title);
 				console.log('length:', info.duration);
 				
 				trackName = info.title;
+			} else {
+				info.duration = null;
 			}
 			
 			queue.push({
@@ -162,11 +177,13 @@ function addTrack(url) {
 }
 
 function calcSecs(time) {
+	// Calculate the amount of seconds of playing time, given the input is [mins]:[secs]
 	var timeArr = time.split(':');
 	return parseInt(time[0])*60 + parseInt(time[2]);
 }
 
 function deleteLastMsg(msg) {
+	// Delete the last message received
 	bot.deleteMessage(msg, {wait : 0}, function(error) {
 		if(error != null) {
 			console.log('[ERROR] [WARNING] Failed to delete message "'+ msg.content +'", because of the following error:\n'+ error);
@@ -175,9 +192,11 @@ function deleteLastMsg(msg) {
 }
 
 function help(cmd) {
+	// Display help for a set of commands
 	cmd == null ? cmd = '' : cmd = cmd;
 	var output = '**[Help]** Currently configured functions:';
 	
+	// Loop through all commands, seeing if it starts with the parameter contents
 	for(command of commands) {
 		if(command.name.indexOf(cmd) === 0) {
 			output += '\n__!'+ command.name +'__: '+ command.desc;
@@ -192,23 +211,27 @@ function help(cmd) {
 }
 
 function playQueue() {
+	// Plays the queue in order
 	if(queue.length > 0) {
 		if(currentTrack == null) {
 			currentTrack = 0;
 		} else {
 			currentTrack = (currentTrack + 1) % queue.length;
 		}
+		// Plays the track specified
 		playTrack(currentTrack);
 		
+		// Sets a timer to make sure it plays completely and is then terminated
 		trackTimer = setTimeout(function() {
 			toNextTrack()
-		}, queue[currentTrack].duration * 1000);
+		}, (queue[currentTrack].duration + 2.5) * 1000);
 	} else {
 		sendMsg('**[Queue]** Hmm... The queue seems empty. Consider adding some music!');
 	}
 }
 
 function playTrack(track) {
+	// Starts playing the track passed by the parameter
 	bot.voiceConnection.playRawStream(
 		MusicStream(
 			queue[track].url,
@@ -223,6 +246,7 @@ function playTrack(track) {
 }
 
 function quit() {
+	// Make the bot terminate completely
 	bot.voiceConnection.destroy();
 	sendMsg('**[QUIT]** '+ ['Wait... I need to leave?! IS THIS HOW IT ENDS ;_;',
 							'I see how it is. You\'re trying to get rid of me... Well too bad, I\'m breaking up with you first!',
@@ -238,6 +262,7 @@ function quit() {
 }
 
 function removeTrack(id) {
+	// Delete a track from queue
 	if(queue[id-1] == null) {
 		sendMsg("**[Queue] [ERROR]** That track doesn't exist");
 	} else {
@@ -248,12 +273,14 @@ function removeTrack(id) {
 }
 
 function sendMsg(msg) {
+	// Shortcut for sending a message to the text channel
 	bot.sendMessage(bot.channels.get('name', textChannels.name[0]),
 					msg
 				   );
 }
 
 function showQueueContents() {
+	// Shows the tracks currently waiting to be played
 	var output = 'Current queue:';
 	
 	if(queue.length > 0) {
@@ -261,18 +288,20 @@ function showQueueContents() {
 			output += '\n  - #'+ (i + 1) +': *'+ queue[i].name +'*'; 
 		}
 	} else {
-		output += '\nQueue is empty at the moment... Add new ones by typing !add [url]!';
+		output += '\nQueue is empty at the moment... Add new ones by typing !queue add [url]!';
 	}
 	
 	sendMsg(output);
 }
 
 function skipToTrack(id) {
+	// Makes it easy to skip to a certain track
 	currentTrack = (id - 1) % queue.length;
 	toNextTrack();
 }
 
 function stopMusic() {
+	// Stop playing music
 	bot.voiceConnection.stopPlaying();
 	clearTimeout(trackTimer);
 	
