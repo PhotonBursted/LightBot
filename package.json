@@ -1,0 +1,4 @@
+"scripts": {
+  "start": "node MusicBot.js"
+},
+"main": "MusicBot.js"
