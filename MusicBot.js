@@ -67,7 +67,7 @@ var commands = [
 var bot = new Discord.Client(),
 	botName = '',
 	botEmail = '',
-	botPassword = '',
+	botPassword = '';
 
 var voiceChannel = {
 		name: 'PCC Radio',
@@ -295,9 +295,4 @@ function toPrevTrack() {
 }
 
 // Login with LightBot credentials
-if(botEmail == null || botPassword == null) {
-	console.log('[ERROR] Please enter the credentials for the bot account in the script first.\nThis script will now terminate');
-	process.exit(0);
-} else {
-	bot.login(botEmail, botPassword);
-}
+bot.login(botEmail, botPassword);
